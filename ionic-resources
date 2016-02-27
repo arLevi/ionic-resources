@@ -1,0 +1,335 @@
+#!/usr/bin/python
+
+from termcolor import colored
+from distutils.spawn import find_executable
+
+import argparse
+import subprocess
+import os
+import sys
+
+
+
+# Globals
+opts = None
+IONIC_ROOT = "ionic.project"
+ROOT_DIR = "resources/"
+
+
+class Options(object):
+
+    def __init__(self):
+        self.args = None
+        self.get_args()
+
+        # Check for our executable command that resize the images
+        if not self.check_exec():
+            Options.error("The script rely on a system command (i.e: sips on MacOSX) that resize the images and wasn't found.\nPlease review our docs at: https://github.com/arLevi/ionic-resources")
+
+    @staticmethod
+    def warning(message, break_line=1, color='YEL', prefix="Warning:"):
+
+        if break_line:         
+            print colored("%s %s \n" % (prefix, message), color.lower())
+
+        else:            
+            print colored("%s %s" % (prefix, message), color.lower())
+
+    @staticmethod
+    def error(message, exit=1):        
+
+        if not message.endswith('\n'):
+            message + "\n"
+
+        Options.warning(message, 0, 'RED', "\nError:")
+        if exit:
+            sys.exit(-1)
+
+    @staticmethod
+    def check_exec():
+        """ Make sure that the executable that we are relying on - exists """
+
+        OSs = ["sips"]        
+
+        for exe in OSs:
+            # Get the full path
+            fullpath = find_executable(exe)
+            if fullpath:
+                return os.path.isfile(fullpath) and os.access(fullpath, os.X_OK)            
+
+        # No executable found
+        return False
+
+    def get_args(self):
+
+        if self.args:
+            return self.args
+
+        desc = ("IonicResGen tool will resizing images vs cropping them\n"
+                "------------------------------------------------------\n"
+                "Platforms: android / ios\n"
+                "Type: splashscreen ( min size required: 2208x2208 )\n")
+
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=desc
+            )
+
+        parser.add_argument('--platform',
+            nargs = 1,
+            dest='platform',
+            metavar = "PLATFORM",
+            help="Platform ( android / ios ), if not provided - will use both platforms",            
+            default=None
+        )
+
+        # NO VALUE
+        parser.add_argument('--noop',            
+            dest='noop',            
+            help="No operation. emulate the output.",                        
+            action = 'store_true',
+            default=False
+        )
+
+        gen_type = parser.add_argument_group(title = 'What do we want to resize ? ( splashscreen / icons )')
+        gen_type.add_argument('--splash',            
+            dest='splash',
+            help="Generate splashscreen ( file should exists in resources/splash.png )",
+            action = 'store_true',
+            default=False
+        )
+        gen_type.add_argument('--icon',
+            dest='icon',
+            help="Generate icons ( file should exists in resources/icon.png )",                        
+            action = 'store_true',
+            default=False
+        )
+
+        self.args = parser.parse_args()
+
+
+class File(object):
+    """ File actions """
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def resize(self, to_size, dest):
+        """
+        to_size     |   Resize to this value 
+        dest        |   Destination directory
+        """
+
+        def print_result(result):
+            print "--> Generating size:", height, "x", width, "... ", result, "(%s)" % dest
+
+        # Split to height/width        
+        (width, height) = to_size.split('x')
+
+        # Run cmd
+        cmd_args = ['sips', '--resampleHeightWidth', height, width, self.filename, '--out', dest]
+
+        if opts.noop:
+            print_result("NOOP")
+            print "[ NOOP ]", ' '.join(cmd_args)
+
+        else:
+            p = subprocess.Popen(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = p.communicate()
+
+            # Check if file exists
+            if os.path.exists(dest) and out:
+                print_result("DONE")
+            else:
+                print_result("ERROR: out: %s:%s" % (out, err))
+
+        return
+
+
+class Splash(object):
+    """ Generging splash images """
+
+    SRC_FILE = ROOT_DIR + 'splash.png'
+    DEST_DIR = {
+        "android":  ROOT_DIR + "android/splash",
+        "ios":      ROOT_DIR + "ios/splash"
+    }
+
+    SIZES = {
+        "android": {
+            "drawable-port-xxxhdpi-screen.png": "1280x1920",
+            "drawable-port-xxhdpi-screen.png":  "960x1600",
+            "drawable-port-xhdpi-screen.png":   "720x1280",
+            "drawable-port-hdpi-screen.png":    "480x800",
+            "drawable-port-ldpi-screen.png":    "240x320",
+
+            "drawable-land-xxxhdpi-screen.png": "1920x1280",
+            "drawable-land-xxhdpi-screen.png":  "1600x960",
+            "drawable-land-xhdpi-screen.png":   "1280x720",
+            "drawable-land-hdpi-screen.png":    "800x480",
+            "drawable-land-mdpi-screen.png":    "480x320",
+            "drawable-land-ldpi-screen.png":    "320x240",
+        },
+
+        "ios": {
+            "Default~iphone.png":               "320x480",
+            "Default@2x~iphone.png":            "640x960",
+            "Default-Portrait~ipad.png":        "768x1024",
+            "Default-Portrait@2x~ipad.png":     "1536x2048",
+            "Default-Landscape~ipad.png":       "1024x768",
+            "Default-Landscape@2x~ipad.png":    "2048x1536",
+            "Default-Landscape-736h.png":       "2208x1242",
+            "Default-736h.png":                 "1242x2208",
+            "Default-667h.png":                 "750x1334",
+            "Default-568h@2x~iphone.png":       "640x1136"
+        }
+    }
+
+
+    def __init__(self):        
+
+        self.filename = File(Splash.SRC_FILE)
+
+        # Check if the file exists in the SRC_FILE
+        if not os.path.exists(Splash.SRC_FILE):
+            Options.error("IonicResGen, unable to locate file: %s" % Splash.SRC_FILE)
+
+    def resize(self, platform=None):
+
+        def _generate(platform):
+
+            print "\nSplashscreen for %s\n%s" % (platform.capitalize(), "-" * (len(platform) + 17) )
+
+            for dest_file in Splash.SIZES[platform]:
+                self.filename.resize(Splash.SIZES[platform][dest_file], "%s/%s" % (Splash.DEST_DIR[platform], dest_file))
+
+
+        # Generate according to platform        
+        if platform is None:            # Run both            
+            _generate("android")
+            _generate("ios")
+
+        elif platform == "android":     # Run Android
+            _generate("android")
+
+        elif platform == "ios":
+            _generate("ios")
+
+        else:
+            raise TypeError("Unknown platform: %s" % platform)
+
+
+class Icon(object):
+    """ Generging icons """
+
+    SRC_FILE = ROOT_DIR + 'icon.png'
+    DEST_DIR = {
+        "android":  ROOT_DIR + "android/icon",
+        "ios":      ROOT_DIR + "ios/icon"
+    }
+
+    SIZES = {
+        "android": {
+            "drawable-xxxhdpi-icon.png":    "192x192",
+            "drawable-xxhdpi-icon.png":     "144x144",
+            "drawable-mdpi-icon.png":       "48x48",
+            "drawable-hdpi-icon.png":       "72x72",
+            "drawable-ldpi-icon.png":       "36x36",
+            "drawable-xhdpi-icon.png":      "96x96",
+        },
+
+        "ios": {
+            "icon-small@3x.png":    "87x87",
+            "icon-76@2x.png":       "152x152",
+            "icon-76.png":          "76x76",
+            "icon-72@2x.png":       "144x144",
+            "icon-72.png":          "72x72",
+            "icon-60@3x.png":       "180x180",
+            "icon-60@2x.png":       "120x120",
+            "icon-small@2x.png":    "58x58",
+            "icon-50@2x.png":       "100x100",
+            "icon-small.png":       "29x29",
+            "icon-60.png":          "60x60",
+            "icon-50.png":          "50x50",
+            "icon@2x.png":          "114x114",
+            "icon-40@2x.png":       "80x80",
+            "icon-40.png":          "40x40",
+            "icon.png":             "57x57",
+        }
+    }
+
+
+    def __init__(self):        
+
+        self.filename = File(Icon.SRC_FILE)
+
+        # Check if the file exists in the SRC_FILE
+        if not os.path.exists(Icon.SRC_FILE):
+            Options.error("IonicResGen, unable to locate file: %s" % Icon.SRC_FILE)
+
+    def resize(self, platform=None):
+
+        def _generate(platform):
+
+            print "\nIcons for %s\n%s" % (platform.capitalize(), "-" * (len(platform) + 17) )
+
+            for dest_file in Icon.SIZES[platform]:
+                self.filename.resize(Icon.SIZES[platform][dest_file], "%s/%s" % (Icon.DEST_DIR[platform], dest_file))
+
+
+        # Generate according to platform        
+        if platform is None:            # Run both            
+            _generate("android")
+            _generate("ios")
+
+        elif platform == "android":     # Run Android
+            _generate("android")
+
+        elif platform == "ios":
+            _generate("ios")
+
+        else:
+            raise TypeError("Unknown platform: %s" % platform)
+
+
+if __name__ == '__main__':
+
+    opts = Options().args    
+    jobs = []        # Queue which actions we need to take according to the flags ? 
+
+    # Title
+    chosen_type = set()
+    if opts.splash or not ( opts.icon or opts.splash ):
+        chosen_type.add("Splashscreen")
+        jobs.append(Splash())
+
+    if opts.icon or not ( opts.icon or opts.splash ):
+        chosen_type.add("Icon")
+        jobs.append(Icon())
+
+
+    print """
+%(hr)s
+        %(title)s
+
+        Requested platform(s):  %(platform)s
+        Requested type(s):      %(type)s
+ %(hr)s
+    """ % {
+        "title":    "Ionic resources generator",
+        "platform": "Android & iOS" if opts.platform is None else opts.platform[0].capitalize(),
+        "type":     ' & '.join(chosen_type),
+        "hr":       "-" * 55  
+    }    
+
+    # Script shold run only from the root dir
+    if not os.path.exists(IONIC_ROOT):
+        Options.error("IonicResGen should run from the Ionic's project root dir")
+
+    # Run jobs
+    for job in jobs:
+        job.resize( opts.platform[0] if opts.platform else None )
+
+    print "\n"
+
+
