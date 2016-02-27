@@ -26,6 +26,12 @@ class Options(object):
         if not self.check_exec():
             Options.error("The script rely on a system command (i.e: sips on MacOSX) that resize the images and wasn't found.\nPlease review our docs at: https://github.com/arLevi/ionic-resources")
 
+        if not self.validate_ionic_root_dir():
+            Options.error("IonicResGen should run from the Ionic's project root dir")
+
+        if not self.check_directories():
+            Options.error("IonicResGen Unable to create resources's platform directories")
+
     @staticmethod
     def warning(message, break_line=1, color='YEL', prefix="Warning:"):
 
@@ -45,8 +51,13 @@ class Options(object):
         if exit:
             sys.exit(-1)
 
-    @staticmethod
-    def check_exec():
+    def validate_ionic_root_dir(self):
+        """ Script shold run only from the root dir """
+        if os.path.exists(IONIC_ROOT):
+            return True
+
+
+    def check_exec(self):
         """ Make sure that the executable that we are relying on - exists """
 
         OSs = ["sips"]        
@@ -59,6 +70,27 @@ class Options(object):
 
         # No executable found
         return False
+
+
+    def check_directories(self):
+        """ Make sure the android/ios directories exists under the ROOT_DIR """
+
+        DIRS = ["android", "ios"]
+        SUB_DIRS = ["/", "/splash", "/icon"]
+
+        # Create directories if not exists under ROOT_DIR
+        for d in DIRS:
+            for sd in SUB_DIRS:
+                fullpath = ROOT_DIR + d + sd
+
+                if not os.path.isdir(fullpath):
+                    print "-> Creating directory", fullpath
+                    os.makedirs(fullpath)
+
+                    if not os.path.isdir(fullpath):
+                        return False
+
+        return True
 
     def get_args(self):
 
@@ -297,7 +329,7 @@ if __name__ == '__main__':
     opts = Options().args    
     jobs = []        # Queue which actions we need to take according to the flags ? 
 
-    # Title
+    # Prepare jobs
     chosen_type = set()
     if opts.splash or not ( opts.icon or opts.splash ):
         chosen_type.add("Splashscreen")
@@ -308,6 +340,7 @@ if __name__ == '__main__':
         jobs.append(Icon())
 
 
+    # Title
     print """
 %(hr)s
         %(title)s
@@ -321,10 +354,6 @@ if __name__ == '__main__':
         "type":     ' & '.join(chosen_type),
         "hr":       "-" * 55  
     }    
-
-    # Script shold run only from the root dir
-    if not os.path.exists(IONIC_ROOT):
-        Options.error("IonicResGen should run from the Ionic's project root dir")
 
     # Run jobs
     for job in jobs:

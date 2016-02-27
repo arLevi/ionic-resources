@@ -1,6 +1,7 @@
 # ionic-resources overview
 ########################
 Easily **resize** your icons and splashscreens of your [Ionic project](http://ionicframework.com/).
+The script replaces the existing ``ionic resources`` command.
 
 Supported OS: 
 * Mac OSX, ( ``sips`` should be installed )
