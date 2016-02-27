@@ -18,8 +18,8 @@ We need to prepare our environment before using ``ionic-resources``, same as wri
 
 From the Ionic's root directory:
 * Create our "resources" directory: ``mkdir resources``
-* Name your splash screen's file ``resources/splash.png``
-* Name your icon's file ``resources/icon.png``
+* Copy your splash screen's file as ``resources/splash.png``
+* Copy your icon's file as ``resources/icon.png``
 
 ### Usage
 *****
