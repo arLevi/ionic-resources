@@ -2,6 +2,9 @@
 ########################
 Easily **resize** your icons and splashscreens of your [Ionic project](http://ionicframework.com/).
 
+Supported OS: 
+* Mac OSX, ( ``sips`` should be installed )
+
 
 ## Notes
 ########################
@@ -16,7 +19,7 @@ Easily **resize** your icons and splashscreens of your [Ionic project](http://io
 * Icon: no template, just make it with minimum size of ``192x192``.
 
 
-## Prepare your resources
+## Prerequisites 
 ########################
 We need to prepare our environment before using ``ionic-resources``, same as written in the [official Ionic automation tutorial](http://blog.ionic.io/automating-icons-and-splash-screens/)
 
@@ -24,6 +27,7 @@ From the Ionic's root directory:
 * Create our "resources" directory: ``mkdir resources``
 * Copy your splash screen's file as ``resources/splash.png``
 * Copy your icon's file as ``resources/icon.png``
+
 
 ## Usage
 ########################
