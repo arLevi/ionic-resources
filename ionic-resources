@@ -1,14 +1,18 @@
 #!/usr/bin/python
 
+from termcolor import colored
+from distutils.spawn import find_executable
+
 import argparse
 import subprocess
-from termcolor import colored
 import os
 import sys
 
 
+
 # Globals
 opts = None
+IONIC_ROOT = "ionic.project"
 ROOT_DIR = "resources/"
 
 
@@ -17,6 +21,10 @@ class Options(object):
     def __init__(self):
         self.args = None
         self.get_args()
+
+        # Check for our executable command that resize the images
+        if not self.check_exec():
+            Options.error("The script rely on a system command (i.e: sips on MacOSX) that resize the images and wasn't found.\nPlease review our docs at: https://github.com/arLevi/ionic-resources")
 
     @staticmethod
     def warning(message, break_line=1, color='YEL', prefix="Warning:"):
@@ -37,6 +45,20 @@ class Options(object):
         if exit:
             sys.exit(-1)
 
+    @staticmethod
+    def check_exec():
+        """ Make sure that the executable that we are relying on - exists """
+
+        OSs = ["sips"]        
+
+        for exe in OSs:
+            # Get the full path
+            fullpath = find_executable(exe)
+            if fullpath:
+                return os.path.isfile(fullpath) and os.access(fullpath, os.X_OK)            
+
+        # No executable found
+        return False
 
     def get_args(self):
 
@@ -112,15 +134,14 @@ class File(object):
             print "[ NOOP ]", ' '.join(cmd_args)
 
         else:
-
             p = subprocess.Popen(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate()
 
-            # Check if file exists            
-            if os.path.exists(dest):
+            # Check if file exists
+            if os.path.exists(dest) and out:
                 print_result("DONE")
             else:
-                print_result("ERROR: out: %s:%s" (out, err))
+                print_result("ERROR: out: %s:%s" % (out, err))
 
         return
 
@@ -274,14 +295,18 @@ class Icon(object):
 if __name__ == '__main__':
 
     opts = Options().args    
+    jobs = []        # Queue which actions we need to take according to the flags ? 
 
     # Title
     chosen_type = set()
-    if opts.splash:
+    if opts.splash or not ( opts.icon or opts.splash ):
         chosen_type.add("Splashscreen")
+        jobs.append(Splash())
 
-    if opts.icon:
+    if opts.icon or not ( opts.icon or opts.splash ):
         chosen_type.add("Icon")
+        jobs.append(Icon())
+
 
     print """
 %(hr)s
@@ -293,23 +318,17 @@ if __name__ == '__main__':
     """ % {
         "title":    "Ionic resources generator",
         "platform": "Android & iOS" if opts.platform is None else opts.platform[0].capitalize(),
-        "type":     ','.join(chosen_type),
+        "type":     ' & '.join(chosen_type),
         "hr":       "-" * 55  
     }    
 
     # Script shold run only from the root dir
-    IONIC_ROOT = "ionic.project"
     if not os.path.exists(IONIC_ROOT):
         Options.error("IonicResGen should run from the Ionic's project root dir")
 
-    # Generate splashscreen(s)
-    if opts.splash or not ( opts.icon and opts.splash ):
-        s = Splash()
-        s.resize( opts.platform[0] if opts.platform else None )
-
-    if opts.icon or not ( opts.icon and opts.splash ):
-        i = Icon()
-        i.resize( opts.platform[0] if opts.platform else None )
+    # Run jobs
+    for job in jobs:
+        job.resize( opts.platform[0] if opts.platform else None )
 
     print "\n"
 
