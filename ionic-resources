@@ -193,6 +193,7 @@ class Splash(object):
             "drawable-port-xxhdpi-screen.png":  "960x1600",
             "drawable-port-xhdpi-screen.png":   "720x1280",
             "drawable-port-hdpi-screen.png":    "480x800",
+            "drawable-port-mdpi-screen.png":    "320x480",
             "drawable-port-ldpi-screen.png":    "240x320",
 
             "drawable-land-xxxhdpi-screen.png": "1920x1280",
