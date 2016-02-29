@@ -24,10 +24,10 @@ Supported OS:
 ########################
 We need to prepare our environment before using ``ionic-resources``, same as written in the [official Ionic automation tutorial](http://blog.ionic.io/automating-icons-and-splash-screens/)
 
-From the Ionic's root directory:
-* Create our "resources" directory: ``mkdir resources``
-* Copy your splash screen's file as ``resources/splash.png``
-* Copy your icon's file as ``resources/icon.png``
+Execute once the ``Ionic resources`` command, this will create all the directories necessary, including adding the XML in ``config.xml``.
+
+*Note*: if you're forcing a "landscape/portrait" orientation in the ``config.xml``, then ``ionic resources`` will generate only those images and add row for only the orientation requested.
+My suggestion is to hide the ``orientation`` preference and after you're satisfied with the result - add it back.
 
 
 ## Usage
@@ -43,6 +43,11 @@ Create only icons for both Android & iOS
 ionic-resources --icon
 ```
   
+Create both splashscreen & icons for the Android platform
+```
+ionic-resources --platform android
+```
+
 Create both icons & splashscreen for both Android & iOS
 ```
 ionic-resources
