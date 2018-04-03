@@ -1,5 +1,4 @@
 # ionic-resources overview
-########################
 Easily **resize** your icons and splashscreens of your [Ionic project](http://ionicframework.com/).
 The script replaces the existing ``ionic resources`` command.
 
@@ -8,20 +7,17 @@ Supported OS:
 
 
 ## Notes
-########################
 * The command does **not** crop the files.
 * Must run from the Ionic's root directory ( same as ``ionic resources`` command ).
 * Supporting only (.PNG) files.
 
 
 ## Templates
-########################
 * [Splashscreen template](http://code.ionicframework.com/resources/splash.psd), minimum size of ``2208x2208``.
 * Icon: no template, just make it with minimum size of ``192x192``.
 
 
 ## Prerequisites 
-########################
 We need to prepare our environment before using ``ionic-resources``, same as written in the [official Ionic automation tutorial](http://blog.ionic.io/automating-icons-and-splash-screens/)
 
 Execute once the ``Ionic resources`` command, this will create all the directories necessary, including adding the XML in ``config.xml``.
@@ -31,7 +27,6 @@ My suggestion is to hide the ``orientation`` preference and after you're satisfi
 
 
 ## Usage
-########################
 
 Create only splashscreens for the Android platform
 ```
@@ -55,7 +50,6 @@ ionic-resources
 
 
 ## Where are the files ?
-########################
 After running the ``ionic-resources`` command, files will be located in:
 * Android
   * Splashscreens: ``resources/android/splash``
@@ -66,7 +60,3 @@ After running the ``ionic-resources`` command, files will be located in:
 
 Only after you ``ionic (build|emulate|run)`` the project, those files will be moved to the correct place for each platform.
 
-## Authors
-########################
-ionic-resources was written by the following engineers:
-* Ricky Levi
